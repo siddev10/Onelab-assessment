@@ -232,8 +232,21 @@ days. Indian public holidays are **not** modelled (see A3).
 
 ---
 
+## A16. Month-End Timing Cut-Off Boundary
+
+- The reconciliation period is evaluated on a monthly calendar basis (1st through 31st).
+- Transactions created in the last 4 days of the month (October 28–31) with T+1 or T+2
+  settlement lag will naturally roll over into November (especially Friday October 30,
+  which rolls over the weekend to settle on Monday November 2).
+- The reconciler marks unmatched platform transactions in this window as `TIMING_DIFFERENCE`.
+- Any unmatched platform transaction initiated prior to October 28 has had more than sufficient
+  business days to settle and is therefore classified as `MISSING_SETTLEMENT`.
+
+---
+
 ## Changelog
 
 | Date | Change |
 |---|---|
 | 2026-11-17 | Initial version — Phase 1 |
+| 2026-11-17 | Added A16 (Month-End Timing Cut-off Boundary) and hardened test coverage |

@@ -8,7 +8,7 @@ An institutional-grade, multi-layer transaction reconciliation engine that ident
 
 ```bash
 # 1. Clone repository and install pinned dependencies
-git clone https://github.com/your-org/payments-reconciler.git && cd payments-reconciler
+git clone https://github.com/siddev10/Onelab-assessment.git && cd Onelab-assessment
 pip install -r requirements.txt
 
 # 2. Run the full unit, invariant & ground-truth test suite (37 tests)
@@ -86,13 +86,23 @@ The reconciliation engine is structured into 7 decoupled layers without UI depen
 
 ---
 
-## 4. WHAT THIS WOULD GET WRONG IN PRODUCTION
+## 4. What this would get wrong in production
 
-Real-world settlement files operate on batched, net-settled lump sums spanning hundreds of transactions without a 1:1 transaction key, requiring complex combinatorial subset-sum or chargeback-adjusted matching rather than unique reference lookups. Multi-currency FX volatility introduces floating conversion spreads between transaction capture and bank settlement, while processor fee tiers and clawbacks are often invoiced retrospectively rather than deterministically deducted per transaction. Platform transaction volumes in production scale to tens of millions of rows per day with asynchronous clock skews across distributed microservices, rendering in-memory pandas reconciliations obsolete in favor of distributed streaming engines like Apache Spark or Snowflake SQL.
+Real bank files are netted batches with fees, chargebacks, and FX spreads rather than 1:1 transaction rows, causing the exact key matcher to fail and forcing the fuzzy matcher into ambiguous candidates that produce false matches. The system assumes a single currency, uniform IST timezone, and fixed 1–2 business-day lag, meaning multi-currency conversions, reversed refunds, partial settlements, and asynchronous clock skews would be misclassified as missing or timing gaps. The reconciliation pipeline runs entirely in memory over thousands of rows, whereas production scale involves tens of millions of daily events requiring a distributed engine like Apache Spark with streaming incremental reconciliation.
 
 ---
 
-## 5. Deployed Application
+## 5. UI & Responsive Screenshots
 
-- **Live URL**: `https://payments-reconciliation.streamlit.app` (Streamlit Community Cloud) / Local: `http://localhost:8501`
+The web app is validated across desktop viewports and mobile widths (390px):
+
+| Desktop Cockpit (1280px) | Mobile View (390px - No Overflow) |
+|:---:|:---:|
+| ![Desktop View](docs/screenshots/desktop_dashboard.png) | ![Mobile View](docs/screenshots/mobile_dashboard.png) |
+
+---
+
+## 6. Deployed Application
+
+- **Live URL**: `https://payments-reconciliation.streamlit.app` (or your Streamlit Community Cloud link linked to `siddev10/Onelab-assessment`)
 - **Docker / Cloud Run / Render Ready**: Includes `render.yaml`, `Procfile`, and `.streamlit/config.toml`.

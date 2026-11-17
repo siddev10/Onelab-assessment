@@ -124,6 +124,29 @@ st.markdown(
     div[data-testid="stDataFrame"] {
         border: 1px solid #e2e8f0;
         border-radius: 6px;
+        overflow-x: auto;
+    }
+
+    /* Mobile Responsive Optimizations (390px) */
+    @media (max-width: 640px) {
+        .block-container {
+            padding-left: 0.5rem !important;
+            padding-right: 0.5rem !important;
+            padding-top: 1rem !important;
+        }
+        .kpi-card {
+            padding: 0.75rem 0.85rem !important;
+            margin-bottom: 0.5rem !important;
+        }
+        .kpi-value {
+            font-size: 1.2rem !important;
+        }
+        .kpi-label {
+            font-size: 0.7rem !important;
+        }
+        h2 {
+            font-size: 1.3rem !important;
+        }
     }
     </style>
     """,
@@ -158,7 +181,7 @@ def get_or_create_default_data() -> tuple[str, str]:
         with st.spinner("Initializing synthetic ledger baseline..."):
             gen = DataGenerator(seed=42, volume=7000)
             gen.generate()
-            gen.write("./data")
+            gen.write("./data", write_ground_truth=False)
 
     return plat_path, bank_path
 
@@ -195,7 +218,7 @@ with st.sidebar:
                 gen = DataGenerator(seed=int(seed_val), volume=int(volume_val))
                 gen.generate()
                 with tempfile.TemporaryDirectory() as tmpdir:
-                    gen.write(tmpdir)
+                    gen.write(tmpdir, write_ground_truth=False)
                     p_file = os.path.join(tmpdir, "platform_transactions.csv")
                     b_file = os.path.join(tmpdir, "bank_settlements.csv")
                     st.session_state.platform_raw = load_csv(p_file)
@@ -227,18 +250,27 @@ with st.sidebar:
 
             if st.button("Reconcile Uploaded Files", type="primary", use_container_width=True):
                 with st.spinner("Validating schema and running reconciliation..."):
-                    p_rows = load_csv(plat_text, is_file=False)
-                    b_rows = load_csv(bank_text, is_file=False)
-                    st.session_state.platform_raw = p_rows
-                    st.session_state.bank_raw = b_rows
-                    st.session_state.result = reconcile(
-                        p_rows,
-                        b_rows,
-                        tolerance_paise=int(tolerance_val),
-                        recon_month=10,
-                        recon_year=2026,
-                    )
-                st.success("Custom files reconciled successfully.")
+                    try:
+                        p_rows = load_csv(plat_text, is_file=False)
+                        b_rows = load_csv(bank_text, is_file=False)
+                        uploaded_result = reconcile(
+                            p_rows,
+                            b_rows,
+                            tolerance_paise=int(tolerance_val),
+                            recon_month=10,
+                            recon_year=2026,
+                        )
+                        if uploaded_result.validation_errors and (not uploaded_result.platform_row_count or not uploaded_result.bank_row_count):
+                            st.error(f"Upload rejected: {len(uploaded_result.validation_errors)} schema error(s) found.")
+                            for err in uploaded_result.validation_errors[:5]:
+                                st.caption(f"• {err}")
+                        else:
+                            st.session_state.platform_raw = p_rows
+                            st.session_state.bank_raw = b_rows
+                            st.session_state.result = uploaded_result
+                            st.success("Custom files reconciled successfully.")
+                    except Exception as ex:
+                        st.error(f"Malformed CSV Error: Unable to parse uploaded file ({str(ex)})")
 
     st.markdown("---")
     st.markdown(

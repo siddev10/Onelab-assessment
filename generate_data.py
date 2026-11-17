@@ -716,7 +716,7 @@ class DataGenerator:
     # Output
     # -------------------------------------------------------------------
 
-    def write(self, output_dir: str) -> None:
+    def write(self, output_dir: str, write_ground_truth: bool = True) -> None:
         os.makedirs(output_dir, exist_ok=True)
 
         # Sort for determinism
@@ -754,31 +754,35 @@ class DataGenerator:
                     s.amount, s.currency
                 ])
 
-        # 3. Ground truth manifest
-        gt_path = os.path.join(output_dir, "_ground_truth.json")
-        manifest = {
-            "seed": self.seed,
-            "volume": self.volume,
-            "recon_month": f"{RECON_YEAR}-{RECON_MONTH:02d}",
-            "platform_row_count": len(self.platform_txns),
-            "bank_row_count": len(self.bank_settlements),
-            "anomalies": [asdict(a) for a in self.anomalies],
-            "summary": {
-                atype: len([a for a in self.anomalies if a.type == atype])
-                for atype in sorted(set(a.type for a in self.anomalies))
-            },
+        # 3. Ground truth manifest (test-only; skipped by web app)
+        summary = {
+            atype: len([a for a in self.anomalies if a.type == atype])
+            for atype in sorted(set(a.type for a in self.anomalies))
         }
-        with open(gt_path, "w", encoding="utf-8") as f:
-            json.dump(manifest, f, indent=2, default=str)
+
+        if write_ground_truth:
+            gt_path = os.path.join(output_dir, "_ground_truth.json")
+            manifest = {
+                "seed": self.seed,
+                "volume": self.volume,
+                "recon_month": f"{RECON_YEAR}-{RECON_MONTH:02d}",
+                "platform_row_count": len(self.platform_txns),
+                "bank_row_count": len(self.bank_settlements),
+                "anomalies": [asdict(a) for a in self.anomalies],
+                "summary": summary,
+            }
+            with open(gt_path, "w", encoding="utf-8") as f:
+                json.dump(manifest, f, indent=2, default=str)
 
         # Print summary
         print(f"Generated data with seed={self.seed}, volume={self.volume}")
         print(f"  Platform transactions: {len(self.platform_txns)} rows -> {plat_path}")
         print(f"  Bank settlements:      {len(self.bank_settlements)} rows -> {bank_path}")
-        print(f"  Ground truth:          {len(self.anomalies)} anomalies -> {gt_path}")
-        print(f"  Anomaly breakdown:")
-        for atype, count in manifest["summary"].items():
-            print(f"    {atype}: {count}")
+        if write_ground_truth:
+            print(f"  Ground truth:          {len(self.anomalies)} anomalies -> {gt_path}")
+            print(f"  Anomaly breakdown:")
+            for atype, count in summary.items():
+                print(f"    {atype}: {count}")
 
 
 # ---------------------------------------------------------------------------
